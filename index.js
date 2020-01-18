@@ -19,59 +19,83 @@ var mm = require('micromatch');
  */
 
 module.exports = function(patterns, options) {
-  options = options || {};
-  var cwd = path.resolve(resolveDir(options.cwd || ''));
 
+  options = options || {};
+
+  var cwd = path.resolve(resolveDir(options.cwd || ''));
+  var res;
   if (typeof patterns === 'string') {
-    return lookup(cwd, [patterns], options);
+    res = lookup(cwd, [patterns], [], options);
+    return result(res);
   }
 
   if (!Array.isArray(patterns)) {
     throw new TypeError('findup-sync expects a string or array as the first argument.');
   }
 
-  return lookup(cwd, patterns, options);
+  res = lookup(cwd, patterns, [], options);
+  return result(res);
+
 };
 
-function lookup(cwd, patterns, options) {
+function result(res) {
+  // backward compatibility
+  if (res.length === 1) {
+    return res[0];
+  }
+  // new functionality can return array
+  if (res.length > 1) {
+    return res;
+  }
+  // backward compatibility - return null not empty array!
+  return null;
+}
+
+function lookup(cwd, patterns, matches, options) {
   var len = patterns.length;
   var idx = -1;
-  var res;
+  var shouldContinue = true;
 
-  while (++idx < len) {
+  while (++idx < len && shouldContinue) {
     if (isGlob(patterns[idx])) {
-      res = matchFile(cwd, patterns[idx], options);
+      matchFile(cwd, patterns[idx], matches, options);
     } else {
-      res = findFile(cwd, patterns[idx], options);
+      var file = findFile(cwd, patterns[idx], options);
+      if (file) {
+        matches.concat(file);
+      }
     }
-    if (res) {
-      return res;
+    if (matches.length && options.all !== true) {
+      return matches;
     }
   }
 
   var dir = path.dirname(cwd);
   if (dir === cwd) {
-    return null;
+    return matches;
   }
-  return lookup(dir, patterns, options);
+  return lookup(dir, patterns, matches, options);
 }
 
-function matchFile(cwd, pattern, opts) {
+function matchFile(cwd, pattern, matches, opts) {
   var isMatch = mm.matcher(pattern, opts);
   var files = tryReaddirSync(cwd);
   var len = files.length;
   var idx = -1;
 
-  while (++idx < len) {
+  var shouldContinue = true;
+  while (++idx < len && shouldContinue) {
     var name = files[idx];
     var fp = path.join(cwd, name);
     if (isMatch(name) || isMatch(fp)) {
-      return fp;
+      matches.push(fp);
+      if (!opts.all) {shouldContinue = false;}
     }
   }
-  return null;
 }
-
+/**
+ * @returns filename | null
+ */
 function findFile(cwd, filename, options) {
   var fp = cwd ? path.resolve(cwd, filename) : filename;
   return detect(fp, options);

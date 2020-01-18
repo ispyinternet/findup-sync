@@ -20,7 +20,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint . --fix",
     "pretest": "npm run lint",
     "test": "nyc mocha --async-only",
     "azure-pipelines": "nyc mocha --async-only --reporter xunit -O output=test.xunit",

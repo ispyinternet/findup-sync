@@ -59,10 +59,11 @@ function lookup(cwd, patterns, matches, options) {
   while (++idx < len && shouldContinue) {
     if (isGlob(patterns[idx])) {
       matchFile(cwd, patterns[idx], matches, options);
-    } else {
+    }
+    else {
       var file = findFile(cwd, patterns[idx], options);
       if (file) {
-        matches.concat(file);
+        matches.push(file);
       }
     }
     if (matches.length && options.all !== true) {
@@ -89,7 +90,7 @@ function matchFile(cwd, pattern, matches, opts) {
     var fp = path.join(cwd, name);
     if (isMatch(name) || isMatch(fp)) {
       matches.push(fp);
-      if (!opts.all) {shouldContinue = false;}
+      if (!opts.all) { shouldContinue = false; }
     }
   }
 }
@@ -104,7 +105,8 @@ function findFile(cwd, filename, options) {
 function tryReaddirSync(fp) {
   try {
     return fs.readdirSync(fp);
-  } catch (err) {
+  }
+  catch (err) {
     // Ignore error
   }
   return [];
